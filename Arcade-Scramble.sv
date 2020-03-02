@@ -235,6 +235,7 @@ joy_db9md joy_db9md
 );
 
 wire [31:0] joy = joy1 | joy2;
+wire  [8:0] sp1, sp2;
 
 wire [21:0] gamma_bus;
 
@@ -264,6 +265,9 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.joystick_0(joy1_USB),
 	.joystick_1(joy2_USB),
 	.joy_raw({joydb9md_1[4],joydb9md_1[6],joydb9md_1[3:0]}),
+	.spinner_0(sp1),
+	.spinner_1(sp2),
+	
 	.ps2_key(ps2_key)
 );
 
@@ -361,6 +365,21 @@ wire m_spcw    = m_spcw1     | m_spcw2;
 wire m_start1  = btn_start_1 | joy[8];
 wire m_start2  = btn_start_2 | joy[9];
 wire m_coin    = btn_coin_1  | btn_coin_2 | joy[10];
+
+reg [8:0] sp;
+always @(posedge clk_sys) begin
+	reg [8:0] old_sp1, old_sp2;
+	reg       sp_sel = 0;
+
+	old_sp1 <= sp1;
+	old_sp2 <= sp2;
+	
+	if(old_sp1 != sp1) sp_sel <= 0;
+	if(old_sp2 != sp2) sp_sel <= 1;
+
+	sp <= sp_sel ? sp2 : sp1;
+end
+
 
 localparam mod_scramble = 0;
 localparam mod_amidar   = 1;
@@ -539,17 +558,22 @@ always @(*) begin
 end
 
 wire [4:0] moon_dial;
-spinner #(1,2) moon_sp (
+spinner #(1,2,1) moon_sp (
 	.clk(clk_sys),
-	.fast(status[6] | m_spccw | m_spcw),
+	.fast(m_spccw | m_spcw),
 	.plus(m_left|m_up|m_right|m_down|m_spccw|m_spcw),
 	.strobe(vs),
-	.use_spinner(status[6] | m_spccw | m_spcw),
-	.spin_angle(moon_dial)
+	.spin_in({sp[8], sp[7] ? 8'd0 - sp[7:0] : sp[7:0]}),
+	.spin_out(moon_dial)
 );
 
 reg moon_dial_dir;
 always @(posedge clk_sys) begin
+	reg old_sp;
+
+	old_sp <= sp[8];
+	if(old_sp ^ sp[8]) moon_dial_dir <= sp[7];
+
 	if(m_left|m_up|m_spccw)   moon_dial_dir <= 1;
 	if(m_right|m_down|m_spcw) moon_dial_dir <= 0;
 end
@@ -572,14 +596,14 @@ reg [5:0] dp_remap_addr;
 always @(posedge clk_sys) dp_remap_addr <= dp_dial;
 
 wire [5:0] dp_dial;
-spinner #(2,4) dp_sp (
+spinner #(2,4,2) dp_sp (
 	.clk(clk_sys),
-	.fast(status[6] | m_spccw | m_spcw),
+	.fast(m_spccw | m_spcw),
 	.minus(m_left | m_up | m_spccw),
 	.plus(m_right | m_down | m_spcw),
 	.strobe(vs),
-	.use_spinner(status[6] | m_spccw | m_spcw),
-	.spin_angle(dp_dial)
+	.spin_in(sp),
+	.spin_out(dp_dial)
 );
 
 wire hblank, vblank;

@@ -58,6 +58,8 @@ module emu
 	input  [11:0] HDMI_WIDTH,
 	input  [11:0] HDMI_HEIGHT,
 	output        HDMI_FREEZE,
+	output        HDMI_BLACKOUT,
+	output        HDMI_BOB_DEINT,
 
 `ifdef MISTER_FB
 	// Use framebuffer in DDRAM
@@ -237,6 +239,9 @@ assign LED_POWER = 0;
 assign BUTTONS   = 0;
 assign AUDIO_MIX = 0;
 assign HDMI_FREEZE = 0;
+assign HDMI_BLACKOUT = 0;
+assign HDMI_BOB_DEINT = 0;
+
 assign VGA_DISABLE = 0;
 assign FB_FORCE_BLANK = 0;
 
@@ -473,6 +478,7 @@ localparam mod_turtles  = 15;
 localparam mod_minefld  = 16;
 localparam mod_rescue   = 17;
 localparam mod_mimonkey = 18;
+localparam mod_cavelon  = 19;
 
 reg [7:0] mod = 0;
 always @(posedge clk_sys) if (ioctl_wr & (ioctl_index==1)) mod <= ioctl_dout;
@@ -641,6 +647,10 @@ always @(*) begin
 		mod_mimonkey:
 			begin
 				hwsel = 12;
+			end
+		mod_cavelon:
+			begin
+				hwsel = 13;
 			end
 		default:;
 	endcase
